@@ -33,6 +33,25 @@ async def main():
                 {
                     "role":"system",
                     "content":"You are a helpul assistant that can scrape websites, crawl pages. and extract data using Firecrawl tools. Think step by step and use the appropriate tools to help the user."
-                    
                 }
             ]
+    print("Available tools -", *[tool.name for tool in tools])
+    print("-" * 60)
+     
+    while True:
+        user_input = input("\nYou: ")
+        if user_input=="quit":
+            print("Goodbye")
+            break
+        messages.append({"role":"user", "content": user_input[:175000]})
+        
+        try:
+            agent_response = agent agent.aiinvoke({"messages":messages}) 
+            
+            ai_message = agent_response["messages"][-1].content 
+            print("Agent:",ai_message)
+        except Exception as e:
+            print("Error:",e)
+
+if __name__ == "__main__":
+    asyncio.run(main())
