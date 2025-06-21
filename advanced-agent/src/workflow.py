@@ -62,4 +62,13 @@ class Workflow:
         return response
       except Exception as e:
         print(e)
-        return None 
+        return CompanyAnalysis(
+          pricing_model="Unknown",
+          is_open_source=None,
+          tech_stack=[],
+          description="Failed",
+          api_available=None,
+          language_support=[],
+          integration_capabilities=[]
+        )
+       
