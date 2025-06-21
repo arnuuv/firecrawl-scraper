@@ -111,3 +111,28 @@ class Workflow:
           company.language_support = analysis.language_support
           company.integration_capabilities = analysis.integration_capabilities
           
+        companies.append(company)
+        
+    return {"companies": companies}
+  
+  def _analyze_step(self, state: ResearchState) -> Dict[str, Any]:
+    print("Generating recommendations")
+    company_data = ", ".join([
+      company.json() for company in state.companies
+        ])
+        
+    messages = [
+      Systemmessage(content=self.prompts.RECOMMENDATIONS_SYSTEM),
+      Humanmessage(content=self.prompts.recommendations_user(company_data))
+    ]
+    response = self.llm.invoke(messages)
+    return {"analysis": response.content}
+    
+  def _generate_report_step(self, state: ResearchState) -> Dict[str, Any]:
+    print("Generating report")
+    company_data = ", ".join([
+      company.json() for company in state.companies
+    ])
+    
+    messages = [
+      Systemmessage(content=self.prompts.REPORT_SYSTEM),
