@@ -1,5 +1,5 @@
-from typing import Dict, Any
-from .models import ComparisonMatrix
+from typing import Dict, Any, List
+from .models import ComparisonMatrix, CompanyInfo
 
 def display_comparison_matrix(matrix: ComparisonMatrix) -> str:
     """Display comparison matrix in a formatted table"""
@@ -38,4 +38,40 @@ def format_tool_summary(company_data: Dict[str, Any]) -> str:
 **Tech Stack:** {', '.join(company_data.get('tech_stack', []))}
 **Integrations:** {', '.join(company_data.get('integration_capabilities', []))}
 """
-    return summary 
+    return summary
+
+def generate_quick_stats(companies: List[CompanyInfo]) -> str:
+    """Generate quick statistics about analyzed tools"""
+    if not companies:
+        return "No tools analyzed"
+    
+    total_tools = len(companies)
+    open_source_count = sum(1 for c in companies if c.is_open_source)
+    api_available_count = sum(1 for c in companies if c.api_available)
+    
+    # Count pricing models
+    pricing_counts = {}
+    for company in companies:
+        pricing = company.pricing_model or "Unknown"
+        pricing_counts[pricing] = pricing_counts.get(pricing, 0) + 1
+    
+    # Get most common languages
+    all_languages = []
+    for company in companies:
+        all_languages.extend(company.language_support)
+    
+    language_counts = {}
+    for lang in all_languages:
+        language_counts[lang] = language_counts.get(lang, 0) + 1
+    
+    top_languages = sorted(language_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+    
+    stats = f"""
+📈 **Quick Stats**
+• Total Tools Analyzed: {total_tools}
+• Open Source: {open_source_count}/{total_tools} ({open_source_count/total_tools*100:.0f}%)
+• API Available: {api_available_count}/{total_tools} ({api_available_count/total_tools*100:.0f}%)
+• Pricing Models: {', '.join([f'{k} ({v})' for k, v in pricing_counts.items()])}
+• Top Languages: {', '.join([f'{lang} ({count})' for lang, count in top_languages])}
+"""
+    return stats 
