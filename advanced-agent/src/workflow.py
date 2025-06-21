@@ -1,19 +1,20 @@
 from typing import Dict, Any
 from langgraph.graph import StateGraph, END
 from langchain_openai import ChatOpenAI
-from langchain_core.message import Humanmessage, Systemmessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from .firecrawl import FirecrawlService
 from .prompts import DeveloperToolsPrompts
+from .models import ResearchState, CompanyInfo, CompanyAnalysis
 
 class Workflow:
   def __init__(self):
     self.firecrawl = FirecrawlService()
     self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
     self.prompts = DeveloperToolsPrompts()
-    self.workflow = StateGraph(ResearchState)
+    self.workflow = self._build_workflow()
  
   def _build_workflow(self):
-    graph = StateGraph()
+    graph = StateGraph(ResearchState)
     graph.add_node("extract_tools", self._extract_tools_step)
     graph.add_node("research", self._research_step)
     graph.add_node("analyze", self._analyze_step)
@@ -21,6 +22,8 @@ class Workflow:
     graph.set_entry_point("extract_tools")
     graph.add_edge("extract_tools", "research")
     graph.add_edge("research", "analyze")
+    graph.add_edge("analyze", "generate_report")
+    graph.add_edge("generate_report", END)
     return graph.compile()
   
   def _extract_tools_step(self, state: ResearchState) -> Dict[str, Any]:
@@ -31,7 +34,7 @@ class Workflow:
     
     all_content = "" 
     for result in search_results:
-      url  =  results.get("url","")
+      url  =  result.get("url","")
       scraped = self.firecrawl.scrape_company_pages(url)
       if scraped:
         all_content += scraped.markdown[:1500] + "\n\n"
@@ -40,8 +43,8 @@ class Workflow:
       return {"error": "No articles found"}
     
     messages = [
-      Systemmessage(content=self.prompts.TOOL_EXTRACTION_SYSTEM),
-      Humanmessage(content=self.prompts.tool_extraction_user(state.query, all_content))
+      SystemMessage(content=self.prompts.TOOL_EXTRACTION_SYSTEM),
+      HumanMessage(content=self.prompts.tool_extraction_user(state.query, all_content))
     ]
     
     try:
@@ -61,8 +64,8 @@ class Workflow:
       structured_llm = self.llm.with_structured_output(CompanyAnalysis)
       
       messages = [
-        Systemmessage(content=self.prompts.TOOL_ANALYSIS_SYSTEM),
-        Humanmessage(content=self.prompts.tool_analysis_user(company_name, content))
+        SystemMessage(content=self.prompts.TOOL_ANALYSIS_SYSTEM),
+        HumanMessage(content=self.prompts.tool_analysis_user(company_name, content))
       ]
       
       try:
@@ -95,15 +98,15 @@ class Workflow:
     
     companies = [] 
     for tool_name in tool_names:
-      tool_search_results = self.firecrawl.search_companies(tool_name + "official site", num_results=1)
+      tool_search_results = self.firecrawl.search_companies(tool_name + " official site", num_results=1)
       if tool_search_results:
         result = tool_search_results.data[0]
         url = result.get("url","")
         company = CompanyInfo(
           name = tool_name,
           description = result.get("markdown", ""),
-          wesbite = url,
-          tech_Stack = [],
+          website = url,
+          tech_stack = [],
           competitors = []
         )
         scraped = self.firecrawl.scrape_company_pages(url)
@@ -126,12 +129,12 @@ class Workflow:
   def _analyze_step(self, state: ResearchState) -> Dict[str, Any]:
     print("Generating recommendations")
     company_data = ", ".join([
-      company.json() for company in state.companies
+      company.model_dump_json() for company in state.companies
         ])
         
     messages = [
-      Systemmessage(content=self.prompts.RECOMMENDATIONS_SYSTEM),
-      Humanmessage(content=self.prompts.recommendations_user(company_data))
+      SystemMessage(content=self.prompts.RECOMMENDATIONS_SYSTEM),
+      HumanMessage(content=self.prompts.recommendations_user(state.query, company_data))
     ]
     response = self.llm.invoke(messages)
     return {"analysis": response.content}
@@ -139,12 +142,12 @@ class Workflow:
   def _generate_report_step(self, state: ResearchState) -> Dict[str, Any]:
     print("Generating report")
     company_data = ", ".join([
-      company.json() for company in state.companies
+      company.model_dump_json() for company in state.companies
     ])
     
     messages = [
-      Systemmessage(content=self.prompts.REPORT_SYSTEM),
-      Humanmessage(content=self.prompts.report_user(company_data))
+      SystemMessage(content=self.prompts.REPORT_SYSTEM),
+      HumanMessage(content=self.prompts.report_user(state.query, company_data))
     ]
     
     response = self.llm.invoke(messages)
@@ -153,9 +156,3 @@ class Workflow:
   def run(self, query:str) -> Dict[str, Any]:
     state = ResearchState(query=query)
     return self.workflow.invoke(state)
-  
-  def run_with_ui(self, query:str) -> Dict[str, Any]:
-    return self.workflow.get_state_graph().get_graph().draw_mermaid_png()
-  
-  def run_with_ui_and_save(self, query:str, output_path:str):
-    graph = self.workflow.get_state_graph().get_graph()
