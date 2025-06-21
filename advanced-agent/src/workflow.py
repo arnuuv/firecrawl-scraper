@@ -21,6 +21,7 @@ class Workflow:
     graph.set_entry_point("extract_tools")
     graph.add_edge("extract_tools", "research")
     graph.add_edge("research", "analyze")
+    return graph.compile()
   
   def _extract_tools_step(self, state: ResearchState) -> Dict[str, Any]:
     print(f"Finding articles about: {state.query}")
@@ -143,3 +144,18 @@ class Workflow:
     
     messages = [
       Systemmessage(content=self.prompts.REPORT_SYSTEM),
+      Humanmessage(content=self.prompts.report_user(company_data))
+    ]
+    
+    response = self.llm.invoke(messages)
+    return {"report": response.content}
+  
+  def run(self, query:str) -> Dict[str, Any]:
+    state = ResearchState(query=query)
+    return self.workflow.invoke(state)
+  
+  def run_with_ui(self, query:str) -> Dict[str, Any]:
+    return self.workflow.get_state_graph().get_graph().draw_mermaid_png()
+  
+  def run_with_ui_and_save(self, query:str, output_path:str):
+    graph = self.workflow.get_state_graph().get_graph()
