@@ -71,4 +71,43 @@ class Workflow:
           language_support=[],
           integration_capabilities=[]
         )
-       
+  def _research_step(self, state: ResearchState) -> Dict[str, Any]:
+    extracted_tools = getattr(state,"extracted_tools",[])
+    
+    if not extracted_tools:
+      print("No extracted tools found")
+      search_results = self.firecrawl.search_companies(state.query, num_results=4)
+      tool_names= [
+        result.get("metadata",{}).get("title","Unknown")
+        for result in search_results.data
+      ]
+    else:
+      tool_names=extracted_tools[:4]
+    print(f"Researching tools: {', '.join(tool_names)}")
+    
+    companies = [] 
+    for tool_name in tool_names:
+      tool_search_results = self.firecrawl.search_companies(tool_name + "official site", num_results=1)
+      if tool_search_results:
+        result = tool_search_results.data[0]
+        url = result.get("url","")
+        company = CompanyInfo(
+          name = tool_name,
+          description = result.get("markdown", ""),
+          wesbite = url,
+          tech_Stack = [],
+          competitors = []
+        )
+        scraped = self.firecrawl.scrape_company_pages(url)
+        if scraped:
+          content = scraped.markdown
+          analysis = self._analyze_company_content(company.name, content)
+          
+          company.pricing_model = analysis.pricing_model
+          company.is_open_source = analysis.is_open_source
+          company.tech_stack = analysis.tech_stack
+          company.description = analysis.description
+          company.api_available = analysis.api_available
+          company.language_support = analysis.language_support
+          company.integration_capabilities = analysis.integration_capabilities
+          
