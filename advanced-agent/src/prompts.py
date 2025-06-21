@@ -62,3 +62,43 @@ class DeveloperToolsPrompts:
                 - Main technical advantage
 
                 Be concise and direct - no long explanations needed."""
+
+    # Report generation prompts
+    REPORT_SYSTEM = """You are a technical writer creating comprehensive reports for developers. 
+                    Provide detailed, well-structured analysis with clear sections and actionable insights."""
+
+    @staticmethod
+    def report_user(query: str, company_data: str) -> str:
+        return f"""Developer Query: {query}
+                Tools/Technologies Analyzed: {company_data}
+
+                Create a comprehensive report with the following sections:
+
+                1. **Executive Summary** (2-3 sentences)
+                2. **Tool Comparison Table** (pricing, open source status, key features)
+                3. **Detailed Analysis** (pros/cons for each tool)
+                4. **Recommendations** (ranked by different use cases)
+                5. **Implementation Considerations** (getting started tips)
+
+                Focus on practical developer needs and real-world usage scenarios."""
+
+    # Comparison matrix prompts
+    COMPARISON_MATRIX_SYSTEM = """You are creating a structured comparison matrix for developer tools. 
+                                Focus on key decision-making criteria that developers care about."""
+
+    @staticmethod
+    def comparison_matrix_user(query: str, company_data: str) -> str:
+        return f"""Developer Query: {query}
+                Tools/Technologies Analyzed: {company_data}
+
+                Create a comparison matrix with the following categories:
+                - Pricing Model (Free/Freemium/Paid/Enterprise)
+                - Open Source (Yes/No/Partial)
+                - API Available (Yes/No)
+                - Language Support (List top 3 languages)
+                - Learning Curve (Easy/Medium/Hard)
+                - Community Size (Small/Medium/Large)
+                - Documentation Quality (Poor/Good/Excellent)
+                - Integration Capabilities (Limited/Moderate/Extensive)
+
+                Return a structured matrix that can be easily compared side-by-side."""

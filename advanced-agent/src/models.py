@@ -28,9 +28,18 @@ class CompanyInfo(BaseModel):
     developer_experience_rating: Optional[str] = None  # Poor, Good, Excellent
 
 
+class ComparisonMatrix(BaseModel):
+    """Structured comparison matrix for tools"""
+    tools: List[str]
+    categories: List[str]
+    matrix: Dict[str, Dict[str, str]]  # tool_name -> category -> value
+
+
 class ResearchState(BaseModel):
     query: str
     extracted_tools: List[str] = []  # Tools extracted from articles
     companies: List[CompanyInfo] = []
     search_results: List[Dict[str, Any]] = []
     analysis: Optional[str] = None
+    report: Optional[str] = None
+    comparison_matrix: Optional[ComparisonMatrix] = None

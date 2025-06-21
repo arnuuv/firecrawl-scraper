@@ -4,7 +4,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from .firecrawl import FirecrawlService
 from .prompts import DeveloperToolsPrompts
-from .models import ResearchState, CompanyInfo, CompanyAnalysis
+from .models import ResearchState, CompanyInfo, CompanyAnalysis, ComparisonMatrix
 
 class Workflow:
   def __init__(self):
@@ -19,11 +19,13 @@ class Workflow:
     graph.add_node("research", self._research_step)
     graph.add_node("analyze", self._analyze_step)
     graph.add_node("generate_report", self._generate_report_step)
+    graph.add_node("generate_comparison", self._generate_comparison_step)
     graph.set_entry_point("extract_tools")
     graph.add_edge("extract_tools", "research")
     graph.add_edge("research", "analyze")
     graph.add_edge("analyze", "generate_report")
-    graph.add_edge("generate_report", END)
+    graph.add_edge("generate_report", "generate_comparison")
+    graph.add_edge("generate_comparison", END)
     return graph.compile()
   
   def _extract_tools_step(self, state: ResearchState) -> Dict[str, Any]:
@@ -152,6 +154,39 @@ class Workflow:
     
     response = self.llm.invoke(messages)
     return {"report": response.content}
+
+  def _generate_comparison_step(self, state: ResearchState) -> Dict[str, Any]:
+    print("Generating comparison matrix")
+    company_data = ", ".join([
+      company.model_dump_json() for company in state.companies
+    ])
+    
+    structured_llm = self.llm.with_structured_output(ComparisonMatrix)
+    
+    messages = [
+      SystemMessage(content=self.prompts.COMPARISON_MATRIX_SYSTEM),
+      HumanMessage(content=self.prompts.comparison_matrix_user(state.query, company_data))
+    ]
+    
+    try:
+      response = structured_llm.invoke(messages)
+      return {"comparison_matrix": response}
+    except Exception as e:
+      print(f"Error generating comparison matrix: {e}")
+      # Fallback to simple comparison
+      tools = [company.name for company in state.companies]
+      categories = ["Pricing", "Open Source", "API", "Languages", "Learning Curve"]
+      matrix = {}
+      for company in state.companies:
+        matrix[company.name] = {
+          "Pricing": company.pricing_model or "Unknown",
+          "Open Source": "Yes" if company.is_open_source else "No",
+          "API": "Yes" if company.api_available else "No",
+          "Languages": ", ".join(company.language_support[:3]),
+          "Learning Curve": "Medium"
+        }
+      fallback_matrix = ComparisonMatrix(tools=tools, categories=categories, matrix=matrix)
+      return {"comparison_matrix": fallback_matrix}
   
   def run(self, query:str) -> Dict[str, Any]:
     state = ResearchState(query=query)
