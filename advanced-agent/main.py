@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 from src.workflow import Workflow
-from src.utils import display_comparison_matrix
+from src.utils import display_comparison_matrix, generate_quick_stats
 import json
 from datetime import datetime
 import os
@@ -54,6 +54,13 @@ def main():
       print("\n" + "="*50)
       print("📊 RESEARCH RESULTS")
       print("="*50)
+      
+      # Show quick stats first
+      if result.get("companies"):
+        print("\n📈 QUICK STATS:")
+        print("-" * 30)
+        stats = generate_quick_stats(result["companies"])
+        print(stats)
       
       if result.get("report"):
         print("\n📋 REPORT:")
