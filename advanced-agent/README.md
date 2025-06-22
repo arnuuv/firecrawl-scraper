@@ -90,3 +90,4 @@ FIRECRAWL_API_KEY=your_firecrawl_key
 - Save results functionality
 - Improved user interface with emojis and better formatting
 
+
