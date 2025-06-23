@@ -1,6 +1,14 @@
 from dotenv import load_dotenv
 from src.workflow import Workflow
-from src.utils import display_comparison_matrix, generate_quick_stats, save_as_json, save_as_markdown
+from src.utils import (
+    display_comparison_matrix, 
+    generate_quick_stats, 
+    save_as_json, 
+    save_as_markdown,
+    filter_tools,
+    sort_tools,
+    display_filtered_results
+)
 import json
 from datetime import datetime
 import os
@@ -34,29 +42,106 @@ def save_results_to_file(result: dict, query: str):
     
     return filename
 
+def show_filter_help():
+    """Display help for filtering and sorting commands"""
+    print("""
+🔍 **Filtering & Sorting Commands:**
+- filter pricing=free          # Filter by pricing model
+- filter opensource=true       # Filter open source tools
+- filter api=true              # Filter tools with API
+- filter language=python       # Filter by programming language
+- filter tech=docker           # Filter by tech stack
+- sort name                    # Sort by name (A-Z)
+- sort pricing                 # Sort by pricing complexity
+- sort languages               # Sort by number of languages
+- sort integrations            # Sort by number of integrations
+- sort tech_stack              # Sort by tech stack size
+- clear                        # Clear all filters
+- help                         # Show this help
+""")
+
+def parse_filter_command(command: str, companies: list) -> tuple:
+    """Parse filter command and return filtered companies"""
+    parts = command.lower().split()
+    if len(parts) < 2:
+        return companies, []
+    
+    filters_applied = []
+    filtered = companies.copy()
+    
+    if parts[0] == "filter":
+        if "pricing=" in command:
+            pricing = command.split("pricing=")[1].split()[0]
+            filtered = filter_tools(filtered, pricing=pricing)
+            filters_applied.append(f"pricing={pricing}")
+        
+        if "opensource=" in command:
+            open_source = "true" in command.lower()
+            filtered = filter_tools(filtered, open_source=open_source)
+            filters_applied.append(f"opensource={open_source}")
+        
+        if "api=" in command:
+            api_available = "true" in command.lower()
+            filtered = filter_tools(filtered, api_available=api_available)
+            filters_applied.append(f"api={api_available}")
+        
+        if "language=" in command:
+            language = command.split("language=")[1].split()[0]
+            filtered = filter_tools(filtered, language=language)
+            filters_applied.append(f"language={language}")
+        
+        if "tech=" in command:
+            tech = command.split("tech=")[1].split()[0]
+            filtered = filter_tools(filtered, tech_stack=tech)
+            filters_applied.append(f"tech={tech}")
+    
+    elif parts[0] == "sort":
+        sort_by = parts[1] if len(parts) > 1 else "name"
+        reverse = "reverse" in command.lower()
+        filtered = sort_tools(filtered, sort_by=sort_by, reverse=reverse)
+        filters_applied.append(f"sort={sort_by}{' reverse' if reverse else ''}")
+    
+    return filtered, filters_applied
+
 def main():
     workflow = Workflow()
     print("🚀 Developer Tools Research Agent")
-    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export")
-    print("Commands: 'exit' to quit")
+    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering")
+    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results")
     
     last_result = None
+    last_companies = None
+    original_companies = None
     
     while True:
-        query = input("\n🔍 Enter a query (or 'exit' to quit, 'save' to save last result): ")
+        if last_companies:
+            print(f"\n📊 Current results: {len(last_companies)} tools")
+            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'save', or 'exit': ")
+        else:
+            command = input("\n🔍 Enter a query (or 'exit' to quit): ")
         
-        if query.lower() == "exit":
+        if command.lower() == "exit":
             print("👋 Exiting...")
             break
+        
+        if command.lower() == "help":
+            show_filter_help()
+            continue
             
-        if query.lower() == "save":
+        if command.lower() == "clear":
+            if original_companies:
+                last_companies = original_companies.copy()
+                print("🧹 Filters cleared!")
+            continue
+            
+        if command.lower() == "save":
             if last_result:
                 format_choice = input("Choose format (json/md): ").lower()
                 if format_choice == 'json':
-                    filename = save_as_json(last_result, last_result['metadata']['query'])
+                    filename = save_as_json(last_result, last_result.get('metadata', {}).get('query', 'unknown'))
                     print(f"💾 Results saved to: {filename}")
                 elif format_choice == 'md':
-                    filename = save_as_markdown(last_result, last_result['metadata']['query'])
+                    filename = save_as_markdown(last_result, last_result.get('metadata', {}).get('query', 'unknown'))
                     print(f"💾 Results saved to: {filename}")
                 else:
                     print("⚠️ Invalid format. Skipping save.")
@@ -64,10 +149,22 @@ def main():
                 print("⚠️ No results to save. Please run a query first.")
             continue
         
+        # Handle filtering and sorting
+        if last_companies and (command.lower().startswith("filter") or command.lower().startswith("sort")):
+            filtered_companies, filters_applied = parse_filter_command(command, last_companies)
+            if filtered_companies != last_companies:
+                last_companies = filtered_companies
+                display = display_filtered_results(filtered_companies, len(original_companies), filters_applied)
+                print(display)
+            continue
+        
+        # Handle new queries
         try:
             print("🔬 Researching... This may take a moment.")
-            result = workflow.run(query)
+            result = workflow.run(command)
             last_result = result
+            last_companies = result.get("companies", [])
+            original_companies = last_companies.copy() if last_companies else None
             
             print("\n" + "="*50)
             print("📊 RESEARCH RESULTS")
@@ -87,10 +184,13 @@ def main():
             
             if result.get("companies"):
                 print(f"\n✅ Analyzed {len(result['companies'])} tools successfully!")
+                print("💡 Use 'filter <criteria>' or 'sort <field>' to refine results!")
                 
         except Exception as e:
             print(f"❌ An error occurred: {e}")
             last_result = None
+            last_companies = None
+            original_companies = None
 
 if __name__ == "__main__":
     main()  
