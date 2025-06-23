@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from .models import ComparisonMatrix, CompanyInfo
 import json
 from datetime import datetime
@@ -74,6 +74,66 @@ def generate_quick_stats(companies: List[CompanyInfo]) -> str:
 - **Top Languages**: {', '.join([f'{lang} ({count})' for lang, count in top_languages])}
 """
     return stats
+
+def filter_tools(companies: List[CompanyInfo], 
+                 pricing: Optional[str] = None,
+                 open_source: Optional[bool] = None,
+                 api_available: Optional[bool] = None,
+                 language: Optional[str] = None,
+                 tech_stack: Optional[str] = None) -> List[CompanyInfo]:
+    """Filter tools based on specific criteria"""
+    filtered = companies.copy()
+    
+    if pricing:
+        filtered = [c for c in filtered if c.pricing_model and pricing.lower() in c.pricing_model.lower()]
+    
+    if open_source is not None:
+        filtered = [c for c in filtered if c.is_open_source == open_source]
+    
+    if api_available is not None:
+        filtered = [c for c in filtered if c.api_available == api_available]
+    
+    if language:
+        filtered = [c for c in filtered if any(lang.lower() in language.lower() for lang in c.language_support)]
+    
+    if tech_stack:
+        filtered = [c for c in filtered if any(tech.lower() in tech_stack.lower() for tech in c.tech_stack)]
+    
+    return filtered
+
+def sort_tools(companies: List[CompanyInfo], 
+               sort_by: str = "name",
+               reverse: bool = False) -> List[CompanyInfo]:
+    """Sort tools by different criteria"""
+    if sort_by == "name":
+        return sorted(companies, key=lambda x: x.name.lower(), reverse=reverse)
+    elif sort_by == "pricing":
+        # Sort by pricing complexity: Free < Freemium < Paid < Enterprise
+        pricing_order = {"Free": 0, "Freemium": 1, "Paid": 2, "Enterprise": 3, "Unknown": 4}
+        return sorted(companies, key=lambda x: pricing_order.get(x.pricing_model, 4), reverse=reverse)
+    elif sort_by == "languages":
+        return sorted(companies, key=lambda x: len(x.language_support), reverse=reverse)
+    elif sort_by == "integrations":
+        return sorted(companies, key=lambda x: len(x.integration_capabilities), reverse=reverse)
+    elif sort_by == "tech_stack":
+        return sorted(companies, key=lambda x: len(x.tech_stack), reverse=reverse)
+    else:
+        return companies
+
+def display_filtered_results(companies: List[CompanyInfo], 
+                           original_count: int,
+                           filters_applied: List[str]) -> str:
+    """Display filtered results with applied filters info"""
+    if not companies:
+        return f"\n❌ No tools match your filters.\nApplied filters: {', '.join(filters_applied)}"
+    
+    filter_info = f"\n🔍 **Filtered Results** ({len(companies)}/{original_count} tools)"
+    if filters_applied:
+        filter_info += f"\nApplied filters: {', '.join(filters_applied)}"
+    
+    tools_list = "\n".join([f"- **{c.name}**: {c.pricing_model or 'Unknown pricing'} | {'Open Source' if c.is_open_source else 'Proprietary'} | API: {'Yes' if c.api_available else 'No'}" for c in companies])
+    
+    return f"{filter_info}\n\n{tools_list}"
 
 def results_to_markdown(result: dict, query: str) -> str:
     """Converts the research results into a Markdown document."""
