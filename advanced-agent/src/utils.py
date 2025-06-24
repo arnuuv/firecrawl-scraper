@@ -75,6 +75,153 @@ def generate_quick_stats(companies: List[CompanyInfo]) -> str:
 """
     return stats
 
+def calculate_recommendation_score(company: CompanyInfo, preferences: Dict[str, Any]) -> float:
+    """Calculate a recommendation score based on user preferences"""
+    score = 0.0
+    max_score = 100.0
+    
+    # Pricing preference (0-25 points)
+    if preferences.get('prefer_free') and company.pricing_model == "Free":
+        score += 25
+    elif preferences.get('prefer_freemium') and company.pricing_model == "Freemium":
+        score += 20
+    elif preferences.get('prefer_paid') and company.pricing_model in ["Paid", "Enterprise"]:
+        score += 15
+    
+    # Open source preference (0-20 points)
+    if preferences.get('prefer_open_source') and company.is_open_source:
+        score += 20
+    elif preferences.get('prefer_proprietary') and not company.is_open_source:
+        score += 15
+    
+    # API preference (0-15 points)
+    if preferences.get('need_api') and company.api_available:
+        score += 15
+    
+    # Language support (0-20 points)
+    preferred_languages = preferences.get('languages', [])
+    if preferred_languages:
+        supported_count = sum(1 for lang in preferred_languages if any(lang.lower() in supported.lower() for supported in company.language_support))
+        if supported_count > 0:
+            score += (supported_count / len(preferred_languages)) * 20
+    
+    # Tech stack compatibility (0-10 points)
+    preferred_tech = preferences.get('tech_stack', [])
+    if preferred_tech:
+        tech_matches = sum(1 for tech in preferred_tech if any(tech.lower() in stack.lower() for stack in company.tech_stack))
+        if tech_matches > 0:
+            score += (tech_matches / len(preferred_tech)) * 10
+    
+    # Integration needs (0-10 points)
+    needed_integrations = preferences.get('integrations', [])
+    if needed_integrations:
+        integration_matches = sum(1 for integration in needed_integrations if any(integration.lower() in cap.lower() for cap in company.integration_capabilities))
+        if integration_matches > 0:
+            score += (integration_matches / len(needed_integrations)) * 10
+    
+    return min(score, max_score)
+
+def get_recommendation_preferences() -> Dict[str, Any]:
+    """Interactive function to get user preferences for scoring"""
+    print("\n🎯 **Recommendation Preferences**")
+    print("Let's customize your tool recommendations:")
+    
+    preferences = {}
+    
+    # Pricing preference
+    pricing = input("Pricing preference (free/freemium/paid/any): ").lower()
+    if pricing == "free":
+        preferences['prefer_free'] = True
+    elif pricing == "freemium":
+        preferences['prefer_freemium'] = True
+    elif pricing == "paid":
+        preferences['prefer_paid'] = True
+    
+    # Open source preference
+    open_source = input("Open source preference (yes/no/any): ").lower()
+    if open_source == "yes":
+        preferences['prefer_open_source'] = True
+    elif open_source == "no":
+        preferences['prefer_proprietary'] = True
+    
+    # API requirement
+    api = input("Need API access? (yes/no): ").lower()
+    if api == "yes":
+        preferences['need_api'] = True
+    
+    # Programming languages
+    languages = input("Programming languages (comma-separated, e.g., python,javascript): ").strip()
+    if languages:
+        preferences['languages'] = [lang.strip() for lang in languages.split(',')]
+    
+    # Tech stack
+    tech = input("Tech stack requirements (comma-separated, e.g., docker,aws): ").strip()
+    if tech:
+        preferences['tech_stack'] = [t.strip() for t in tech.split(',')]
+    
+    # Integrations
+    integrations = input("Required integrations (comma-separated, e.g., github,slack): ").strip()
+    if integrations:
+        preferences['integrations'] = [i.strip() for i in integrations.split(',')]
+    
+    return preferences
+
+def score_and_rank_tools(companies: List[CompanyInfo], preferences: Dict[str, Any]) -> List[tuple]:
+    """Score and rank tools based on preferences"""
+    scored_tools = []
+    
+    for company in companies:
+        score = calculate_recommendation_score(company, preferences)
+        scored_tools.append((company, score))
+    
+    # Sort by score (highest first)
+    scored_tools.sort(key=lambda x: x[1], reverse=True)
+    
+    return scored_tools
+
+def display_scored_recommendations(scored_tools: List[tuple], preferences: Dict[str, Any]) -> str:
+    """Display scored recommendations in a nice format"""
+    if not scored_tools:
+        return "No tools to recommend"
+    
+    output = ["\n🏆 **Personalized Recommendations**\n"]
+    
+    # Show preferences used
+    pref_summary = []
+    if preferences.get('prefer_free'):
+        pref_summary.append("Free pricing")
+    elif preferences.get('prefer_freemium'):
+        pref_summary.append("Freemium pricing")
+    elif preferences.get('prefer_paid'):
+        pref_summary.append("Paid pricing")
+    
+    if preferences.get('prefer_open_source'):
+        pref_summary.append("Open source")
+    elif preferences.get('prefer_proprietary'):
+        pref_summary.append("Proprietary")
+    
+    if preferences.get('need_api'):
+        pref_summary.append("API required")
+    
+    if preferences.get('languages'):
+        pref_summary.append(f"Languages: {', '.join(preferences['languages'])}")
+    
+    if pref_summary:
+        output.append(f"Based on: {', '.join(pref_summary)}\n")
+    
+    # Show ranked tools
+    for i, (company, score) in enumerate(scored_tools, 1):
+        medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
+        
+        output.append(f"{medal} **{company.name}** - {score:.1f}/100")
+        output.append(f"   • {company.pricing_model or 'Unknown pricing'} | {'Open Source' if company.is_open_source else 'Proprietary'}")
+        output.append(f"   • API: {'Yes' if company.api_available else 'No'} | Languages: {', '.join(company.language_support[:3])}")
+        if company.description:
+            output.append(f"   • {company.description[:100]}{'...' if len(company.description) > 100 else ''}")
+        output.append("")
+    
+    return "\n".join(output)
+
 def filter_tools(companies: List[CompanyInfo], 
                  pricing: Optional[str] = None,
                  open_source: Optional[bool] = None,

@@ -7,7 +7,10 @@ from src.utils import (
     save_as_markdown,
     filter_tools,
     sort_tools,
-    display_filtered_results
+    display_filtered_results,
+    get_recommendation_preferences,
+    score_and_rank_tools,
+    display_scored_recommendations
 )
 import json
 from datetime import datetime
@@ -56,6 +59,7 @@ def show_filter_help():
 - sort languages               # Sort by number of languages
 - sort integrations            # Sort by number of integrations
 - sort tech_stack              # Sort by tech stack size
+- score                        # Get personalized recommendations
 - clear                        # Clear all filters
 - help                         # Show this help
 """)
@@ -106,17 +110,18 @@ def parse_filter_command(command: str, companies: list) -> tuple:
 def main():
     workflow = Workflow()
     print("🚀 Developer Tools Research Agent")
-    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering")
-    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results")
+    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring")
+    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations")
     
     last_result = None
     last_companies = None
     original_companies = None
+    current_preferences = None
     
     while True:
         if last_companies:
             print(f"\n📊 Current results: {len(last_companies)} tools")
-            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'save', or 'exit': ")
+            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'save', or 'exit': ")
         else:
             command = input("\n🔍 Enter a query (or 'exit' to quit): ")
         
@@ -132,6 +137,27 @@ def main():
             if original_companies:
                 last_companies = original_companies.copy()
                 print("🧹 Filters cleared!")
+            continue
+            
+        if command.lower() == "score":
+            if not last_companies:
+                print("⚠️ No results to score. Please run a query first.")
+                continue
+            
+            print("🎯 Let's get personalized recommendations!")
+            try:
+                preferences = get_recommendation_preferences()
+                current_preferences = preferences
+                
+                scored_tools = score_and_rank_tools(last_companies, preferences)
+                recommendations = display_scored_recommendations(scored_tools, preferences)
+                print(recommendations)
+                
+                # Update last_companies to show scored order
+                last_companies = [company for company, score in scored_tools]
+                
+            except KeyboardInterrupt:
+                print("\n⚠️ Scoring cancelled.")
             continue
             
         if command.lower() == "save":
@@ -165,6 +191,7 @@ def main():
             last_result = result
             last_companies = result.get("companies", [])
             original_companies = last_companies.copy() if last_companies else None
+            current_preferences = None  # Reset preferences for new query
             
             print("\n" + "="*50)
             print("📊 RESEARCH RESULTS")
@@ -184,13 +211,14 @@ def main():
             
             if result.get("companies"):
                 print(f"\n✅ Analyzed {len(result['companies'])} tools successfully!")
-                print("💡 Use 'filter <criteria>' or 'sort <field>' to refine results!")
+                print("💡 Use 'filter <criteria>', 'sort <field>', or 'score' to refine results!")
                 
         except Exception as e:
             print(f"❌ An error occurred: {e}")
             last_result = None
             last_companies = None
             original_companies = None
+            current_preferences = None
 
 if __name__ == "__main__":
     main()  
