@@ -41,6 +41,78 @@ def format_tool_summary(company_data: Dict[str, Any]) -> str:
 """
     return summary
 
+def compare_two_tools(tool1: CompanyInfo, tool2: CompanyInfo) -> str:
+    """Create a detailed side-by-side comparison of two tools"""
+    comparison = f"""
+## 🔄 **{tool1.name} vs {tool2.name}**
+
+| Feature | {tool1.name} | {tool2.name} |
+|---------|{'|'.join(['-' * (len(tool1.name) + 2)])}|{'|'.join(['-' * (len(tool2.name) + 2)])}|
+| **Pricing Model** | {tool1.pricing_model or 'Unknown'} | {tool2.pricing_model or 'Unknown'} |
+| **Open Source** | {'✅ Yes' if tool1.is_open_source else '❌ No'} | {'✅ Yes' if tool2.is_open_source else '❌ No'} |
+| **API Available** | {'✅ Yes' if tool1.api_available else '❌ No'} | {'✅ Yes' if tool2.api_available else '❌ No'} |
+| **Website** | {tool1.website} | {tool2.website} |
+| **Description** | {tool1.description[:50]}{'...' if len(tool1.description) > 50 else ''} | {tool2.description[:50]}{'...' if len(tool2.description) > 50 else ''} |
+
+### 🗣️ **Language Support**
+| {tool1.name} | {tool2.name} |
+|{'|'.join(['-' * (len(tool1.name) + 2)])}|{'|'.join(['-' * (len(tool2.name) + 2)])}|
+| {', '.join(tool1.language_support) if tool1.language_support else 'None'} | {', '.join(tool2.language_support) if tool2.language_support else 'None'} |
+
+### 🛠️ **Tech Stack**
+| {tool1.name} | {tool2.name} |
+|{'|'.join(['-' * (len(tool1.name) + 2)])}|{'|'.join(['-' * (len(tool2.name) + 2)])}|
+| {', '.join(tool1.tech_stack) if tool1.tech_stack else 'None'} | {', '.join(tool2.tech_stack) if tool2.tech_stack else 'None'} |
+
+### 🔗 **Integrations**
+| {tool1.name} | {tool2.name} |
+|{'|'.join(['-' * (len(tool1.name) + 2)])}|{'|'.join(['-' * (len(tool2.name) + 2)])}|
+| {', '.join(tool1.integration_capabilities) if tool1.integration_capabilities else 'None'} | {', '.join(tool2.integration_capabilities) if tool2.integration_capabilities else 'None'} |
+
+### 📊 **Quick Stats**
+| Metric | {tool1.name} | {tool2.name} |
+|--------|{'|'.join(['-' * (len(tool1.name) + 2)])}|{'|'.join(['-' * (len(tool2.name) + 2)])}|
+| Languages Supported | {len(tool1.language_support)} | {len(tool2.language_support)} |
+| Tech Stack Items | {len(tool1.tech_stack)} | {len(tool2.tech_stack)} |
+| Integrations | {len(tool1.integration_capabilities)} | {len(tool2.integration_capabilities)} |
+
+### 💡 **Recommendation**
+"""
+    
+    # Add a simple recommendation based on key differences
+    recommendations = []
+    
+    if tool1.pricing_model != tool2.pricing_model:
+        if tool1.pricing_model == "Free" and tool2.pricing_model != "Free":
+            recommendations.append(f"💰 **Budget-friendly**: {tool1.name} is free while {tool2.name} is {tool2.pricing_model}")
+        elif tool2.pricing_model == "Free" and tool1.pricing_model != "Free":
+            recommendations.append(f"💰 **Budget-friendly**: {tool2.name} is free while {tool1.name} is {tool1.pricing_model}")
+    
+    if tool1.is_open_source != tool2.is_open_source:
+        if tool1.is_open_source:
+            recommendations.append(f"🔓 **Open Source**: {tool1.name} is open source")
+        else:
+            recommendations.append(f"🔓 **Open Source**: {tool2.name} is open source")
+    
+    if len(tool1.language_support) != len(tool2.language_support):
+        if len(tool1.language_support) > len(tool2.language_support):
+            recommendations.append(f"🌐 **Language Support**: {tool1.name} supports more languages ({len(tool1.language_support)} vs {len(tool2.language_support)})")
+        else:
+            recommendations.append(f"🌐 **Language Support**: {tool2.name} supports more languages ({len(tool2.language_support)} vs {len(tool1.language_support)})")
+    
+    if len(tool1.integration_capabilities) != len(tool2.integration_capabilities):
+        if len(tool1.integration_capabilities) > len(tool2.integration_capabilities):
+            recommendations.append(f"🔗 **Integrations**: {tool1.name} has more integrations ({len(tool1.integration_capabilities)} vs {len(tool2.integration_capabilities)})")
+        else:
+            recommendations.append(f"🔗 **Integrations**: {tool2.name} has more integrations ({len(tool2.integration_capabilities)} vs {len(tool1.integration_capabilities)})")
+    
+    if recommendations:
+        comparison += "\n".join(recommendations)
+    else:
+        comparison += "Both tools are quite similar in their core features. Consider your specific use case and requirements."
+    
+    return comparison
+
 def generate_quick_stats(companies: List[CompanyInfo]) -> str:
     """Generate quick statistics about analyzed tools"""
     if not companies:
