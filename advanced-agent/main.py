@@ -11,7 +11,8 @@ from src.utils import (
     get_recommendation_preferences,
     score_and_rank_tools,
     display_scored_recommendations,
-    format_tool_summary
+    format_tool_summary,
+    compare_two_tools
 )
 import json
 from datetime import datetime
@@ -62,6 +63,7 @@ def show_filter_help():
 - sort tech_stack              # Sort by tech stack size
 - score                        # Get personalized recommendations
 - details <name|number>        # Show details for a tool
+- compare <tool1> <tool2>      # Compare two tools side-by-side
 - clear                        # Clear all filters
 - help                         # Show this help
 """)
@@ -127,11 +129,66 @@ def show_tool_details(companies, arg):
         else:
             print(f"No tool found with name '{arg}'.")
 
+def compare_tools(companies, command):
+    """Compare two tools by name or number."""
+    if not companies:
+        print("No tools to compare.")
+        return
+    
+    # Extract tool names/numbers from command
+    parts = command.split()
+    if len(parts) < 3:
+        print("Usage: compare <tool1> <tool2>")
+        print("Example: compare Supabase PlanetScale")
+        print("Example: compare 1 2")
+        return
+    
+    tool1_arg = parts[1]
+    tool2_arg = parts[2]
+    
+    # Find first tool
+    tool1 = None
+    if tool1_arg.isdigit():
+        idx = int(tool1_arg) - 1
+        if 0 <= idx < len(companies):
+            tool1 = companies[idx]
+        else:
+            print(f"No tool at position {tool1_arg}.")
+            return
+    else:
+        matches = [c for c in companies if c.name.lower() == tool1_arg.lower()]
+        if matches:
+            tool1 = matches[0]
+        else:
+            print(f"No tool found with name '{tool1_arg}'.")
+            return
+    
+    # Find second tool
+    tool2 = None
+    if tool2_arg.isdigit():
+        idx = int(tool2_arg) - 1
+        if 0 <= idx < len(companies):
+            tool2 = companies[idx]
+        else:
+            print(f"No tool at position {tool2_arg}.")
+            return
+    else:
+        matches = [c for c in companies if c.name.lower() == tool2_arg.lower()]
+        if matches:
+            tool2 = matches[0]
+        else:
+            print(f"No tool found with name '{tool2_arg}'.")
+            return
+    
+    # Compare the tools
+    comparison = compare_two_tools(tool1, tool2)
+    print(comparison)
+
 def main():
     workflow = Workflow()
     print("🚀 Developer Tools Research Agent")
-    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring, Details")
-    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations, 'details <name|number>' for tool details")
+    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring, Details, Compare")
+    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations, 'details <name|number>' for tool details, 'compare <tool1> <tool2>' for side-by-side comparison")
     
     last_result = None
     last_companies = None
@@ -141,7 +198,7 @@ def main():
     while True:
         if last_companies:
             print(f"\n📊 Current results: {len(last_companies)} tools")
-            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'save', or 'exit': ")
+            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', 'save', or 'exit': ")
         else:
             command = input("\n🔍 Enter a query (or 'exit' to quit): ")
         
@@ -204,6 +261,11 @@ def main():
                 show_tool_details(last_companies, arg)
             continue
         
+        # Handle compare command
+        if last_companies and command.lower().startswith("compare"):
+            compare_tools(last_companies, command)
+            continue
+        
         # Handle filtering and sorting
         if last_companies and (command.lower().startswith("filter") or command.lower().startswith("sort")):
             filtered_companies, filters_applied = parse_filter_command(command, last_companies)
@@ -240,7 +302,7 @@ def main():
             
             if result.get("companies"):
                 print(f"\n✅ Analyzed {len(result['companies'])} tools successfully!")
-                print("💡 Use 'filter <criteria>', 'sort <field>', 'score', or 'details <name|number>' to refine results!")
+                print("💡 Use 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', or 'compare <tool1> <tool2>' to refine results!")
                 
         except Exception as e:
             print(f"❌ An error occurred: {e}")
