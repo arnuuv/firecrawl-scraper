@@ -10,7 +10,8 @@ from src.utils import (
     display_filtered_results,
     get_recommendation_preferences,
     score_and_rank_tools,
-    display_scored_recommendations
+    display_scored_recommendations,
+    format_tool_summary
 )
 import json
 from datetime import datetime
@@ -60,6 +61,7 @@ def show_filter_help():
 - sort integrations            # Sort by number of integrations
 - sort tech_stack              # Sort by tech stack size
 - score                        # Get personalized recommendations
+- details <name|number>        # Show details for a tool
 - clear                        # Clear all filters
 - help                         # Show this help
 """)
@@ -107,11 +109,29 @@ def parse_filter_command(command: str, companies: list) -> tuple:
     
     return filtered, filters_applied
 
+def show_tool_details(companies, arg):
+    """Show details for a tool by name or number."""
+    if not companies:
+        print("No tools to show details for.")
+        return
+    if arg.isdigit():
+        idx = int(arg) - 1
+        if 0 <= idx < len(companies):
+            print(format_tool_summary(companies[idx].model_dump()))
+        else:
+            print(f"No tool at position {arg}.")
+    else:
+        matches = [c for c in companies if c.name.lower() == arg.lower()]
+        if matches:
+            print(format_tool_summary(matches[0].model_dump()))
+        else:
+            print(f"No tool found with name '{arg}'.")
+
 def main():
     workflow = Workflow()
     print("🚀 Developer Tools Research Agent")
-    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring")
-    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations")
+    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring, Details")
+    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations, 'details <name|number>' for tool details")
     
     last_result = None
     last_companies = None
@@ -121,7 +141,7 @@ def main():
     while True:
         if last_companies:
             print(f"\n📊 Current results: {len(last_companies)} tools")
-            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'save', or 'exit': ")
+            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'save', or 'exit': ")
         else:
             command = input("\n🔍 Enter a query (or 'exit' to quit): ")
         
@@ -175,6 +195,15 @@ def main():
                 print("⚠️ No results to save. Please run a query first.")
             continue
         
+        # Handle details command
+        if last_companies and command.lower().startswith("details"):
+            arg = command[len("details"):].strip()
+            if not arg:
+                print("Usage: details <tool name|number>")
+            else:
+                show_tool_details(last_companies, arg)
+            continue
+        
         # Handle filtering and sorting
         if last_companies and (command.lower().startswith("filter") or command.lower().startswith("sort")):
             filtered_companies, filters_applied = parse_filter_command(command, last_companies)
@@ -211,7 +240,7 @@ def main():
             
             if result.get("companies"):
                 print(f"\n✅ Analyzed {len(result['companies'])} tools successfully!")
-                print("💡 Use 'filter <criteria>', 'sort <field>', or 'score' to refine results!")
+                print("💡 Use 'filter <criteria>', 'sort <field>', 'score', or 'details <name|number>' to refine results!")
                 
         except Exception as e:
             print(f"❌ An error occurred: {e}")
