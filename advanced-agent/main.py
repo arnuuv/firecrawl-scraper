@@ -12,7 +12,8 @@ from src.utils import (
     score_and_rank_tools,
     display_scored_recommendations,
     format_tool_summary,
-    compare_two_tools
+    compare_two_tools,
+    save_comparison_as_markdown
 )
 import json
 from datetime import datetime
@@ -64,6 +65,7 @@ def show_filter_help():
 - score                        # Get personalized recommendations
 - details <name|number>        # Show details for a tool
 - compare <tool1> <tool2>      # Compare two tools side-by-side
+- export-compare <tool1> <tool2> # Export comparison as Markdown file
 - clear                        # Clear all filters
 - help                         # Show this help
 """)
@@ -184,11 +186,70 @@ def compare_tools(companies, command):
     comparison = compare_two_tools(tool1, tool2)
     print(comparison)
 
+def export_comparison(companies, command):
+    """Export a tool comparison as a Markdown file."""
+    if not companies:
+        print("No tools to compare.")
+        return
+    
+    # Extract tool names/numbers from command
+    parts = command.split()
+    if len(parts) < 3:
+        print("Usage: export-compare <tool1> <tool2>")
+        print("Example: export-compare Supabase PlanetScale")
+        print("Example: export-compare 1 2")
+        return
+    
+    tool1_arg = parts[1]
+    tool2_arg = parts[2]
+    
+    # Find first tool
+    tool1 = None
+    if tool1_arg.isdigit():
+        idx = int(tool1_arg) - 1
+        if 0 <= idx < len(companies):
+            tool1 = companies[idx]
+        else:
+            print(f"No tool at position {tool1_arg}.")
+            return
+    else:
+        matches = [c for c in companies if c.name.lower() == tool1_arg.lower()]
+        if matches:
+            tool1 = matches[0]
+        else:
+            print(f"No tool found with name '{tool1_arg}'.")
+            return
+    
+    # Find second tool
+    tool2 = None
+    if tool2_arg.isdigit():
+        idx = int(tool2_arg) - 1
+        if 0 <= idx < len(companies):
+            tool2 = companies[idx]
+        else:
+            print(f"No tool at position {tool2_arg}.")
+            return
+    else:
+        matches = [c for c in companies if c.name.lower() == tool2_arg.lower()]
+        if matches:
+            tool2 = matches[0]
+        else:
+            print(f"No tool found with name '{tool2_arg}'.")
+            return
+    
+    # Export the comparison
+    try:
+        filename = save_comparison_as_markdown(tool1, tool2)
+        print(f"📄 Comparison exported to: {filename}")
+        print(f"📊 Comparing: {tool1.name} vs {tool2.name}")
+    except Exception as e:
+        print(f"❌ Error exporting comparison: {e}")
+
 def main():
     workflow = Workflow()
     print("🚀 Developer Tools Research Agent")
-    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring, Details, Compare")
-    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations, 'details <name|number>' for tool details, 'compare <tool1> <tool2>' for side-by-side comparison")
+    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring, Details, Compare, Export Compare")
+    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations, 'details <name|number>' for tool details, 'compare <tool1> <tool2>' for side-by-side comparison, 'export-compare <tool1> <tool2>' to save comparison as file")
     
     last_result = None
     last_companies = None
@@ -198,7 +259,7 @@ def main():
     while True:
         if last_companies:
             print(f"\n📊 Current results: {len(last_companies)} tools")
-            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', 'save', or 'exit': ")
+            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', 'export-compare <tool1> <tool2>', 'save', or 'exit': ")
         else:
             command = input("\n🔍 Enter a query (or 'exit' to quit): ")
         
@@ -262,8 +323,13 @@ def main():
             continue
         
         # Handle compare command
-        if last_companies and command.lower().startswith("compare"):
+        if last_companies and command.lower().startswith("compare") and not command.lower().startswith("export-compare"):
             compare_tools(last_companies, command)
+            continue
+        
+        # Handle export-compare command
+        if last_companies and command.lower().startswith("export-compare"):
+            export_comparison(last_companies, command)
             continue
         
         # Handle filtering and sorting
@@ -302,7 +368,7 @@ def main():
             
             if result.get("companies"):
                 print(f"\n✅ Analyzed {len(result['companies'])} tools successfully!")
-                print("💡 Use 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', or 'compare <tool1> <tool2>' to refine results!")
+                print("💡 Use 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', or 'export-compare <tool1> <tool2>' to refine results!")
                 
         except Exception as e:
             print(f"❌ An error occurred: {e}")
