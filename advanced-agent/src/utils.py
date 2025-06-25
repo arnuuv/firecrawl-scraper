@@ -41,6 +41,31 @@ def format_tool_summary(company_data: Dict[str, Any]) -> str:
 """
     return summary
 
+def display_tools_list(companies: List[CompanyInfo]) -> str:
+    """Display a numbered list of all tools with key details"""
+    if not companies:
+        return "No tools to display."
+    
+    output = [f"\n📋 **Tools List** ({len(companies)} tools)\n"]
+    
+    for i, company in enumerate(companies, 1):
+        # Get key details
+        pricing = company.pricing_model or "Unknown"
+        open_source = "✅ Open Source" if company.is_open_source else "❌ Proprietary"
+        api = "✅ API" if company.api_available else "❌ No API"
+        languages = ", ".join(company.language_support[:3]) if company.language_support else "None"
+        
+        # Truncate description if too long
+        description = company.description[:80] + "..." if len(company.description) > 80 else company.description
+        
+        output.append(f"{i}. **{company.name}**")
+        output.append(f"   💰 {pricing} | {open_source} | {api}")
+        output.append(f"   🌐 Languages: {languages}")
+        output.append(f"   📝 {description}")
+        output.append("")
+    
+    return "\n".join(output)
+
 def compare_two_tools(tool1: CompanyInfo, tool2: CompanyInfo) -> str:
     """Create a detailed side-by-side comparison of two tools"""
     comparison = f"""

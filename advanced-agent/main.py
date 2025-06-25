@@ -13,7 +13,8 @@ from src.utils import (
     display_scored_recommendations,
     format_tool_summary,
     compare_two_tools,
-    save_comparison_as_markdown
+    save_comparison_as_markdown,
+    display_tools_list
 )
 import json
 from datetime import datetime
@@ -66,6 +67,7 @@ def show_filter_help():
 - details <name|number>        # Show details for a tool
 - compare <tool1> <tool2>      # Compare two tools side-by-side
 - export-compare <tool1> <tool2> # Export comparison as Markdown file
+- list                         # Show numbered list of all tools
 - clear                        # Clear all filters
 - help                         # Show this help
 """)
@@ -248,8 +250,8 @@ def export_comparison(companies, command):
 def main():
     workflow = Workflow()
     print("🚀 Developer Tools Research Agent")
-    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring, Details, Compare, Export Compare")
-    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations, 'details <name|number>' for tool details, 'compare <tool1> <tool2>' for side-by-side comparison, 'export-compare <tool1> <tool2>' to save comparison as file")
+    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring, Details, Compare, Export Compare, List")
+    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations, 'details <name|number>' for tool details, 'compare <tool1> <tool2>' for side-by-side comparison, 'export-compare <tool1> <tool2>' to save comparison as file, 'list' to show all tools")
     
     last_result = None
     last_companies = None
@@ -259,7 +261,7 @@ def main():
     while True:
         if last_companies:
             print(f"\n📊 Current results: {len(last_companies)} tools")
-            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', 'export-compare <tool1> <tool2>', 'save', or 'exit': ")
+            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', 'export-compare <tool1> <tool2>', 'list', 'save', or 'exit': ")
         else:
             command = input("\n🔍 Enter a query (or 'exit' to quit): ")
         
@@ -275,6 +277,14 @@ def main():
             if original_companies:
                 last_companies = original_companies.copy()
                 print("🧹 Filters cleared!")
+            continue
+            
+        if command.lower() == "list":
+            if not last_companies:
+                print("⚠️ No results to list. Please run a query first.")
+            else:
+                tools_list = display_tools_list(last_companies)
+                print(tools_list)
             continue
             
         if command.lower() == "score":
@@ -368,7 +378,7 @@ def main():
             
             if result.get("companies"):
                 print(f"\n✅ Analyzed {len(result['companies'])} tools successfully!")
-                print("💡 Use 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', or 'export-compare <tool1> <tool2>' to refine results!")
+                print("💡 Use 'list', 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', or 'export-compare <tool1> <tool2>' to refine results!")
                 
         except Exception as e:
             print(f"❌ An error occurred: {e}")
