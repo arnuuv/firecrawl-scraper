@@ -14,7 +14,9 @@ from src.utils import (
     format_tool_summary,
     compare_two_tools,
     save_comparison_as_markdown,
-    display_tools_list
+    display_tools_list,
+    search_within_tools,
+    display_search_results
 )
 import json
 from datetime import datetime
@@ -68,6 +70,7 @@ def show_filter_help():
 - compare <tool1> <tool2>      # Compare two tools side-by-side
 - export-compare <tool1> <tool2> # Export comparison as Markdown file
 - list                         # Show numbered list of all tools
+- search <keyword>             # Search within tool data
 - clear                        # Clear all filters
 - help                         # Show this help
 """)
@@ -247,11 +250,33 @@ def export_comparison(companies, command):
     except Exception as e:
         print(f"❌ Error exporting comparison: {e}")
 
+def search_tools(companies, command):
+    """Search within tool data for specific keywords."""
+    if not companies:
+        print("No tools to search in.")
+        return
+    
+    # Extract search term from command
+    parts = command.split()
+    if len(parts) < 2:
+        print("Usage: search <keyword>")
+        print("Example: search python")
+        print("Example: search docker")
+        print("Example: search real-time")
+        return
+    
+    search_term = " ".join(parts[1:])
+    
+    # Perform the search
+    search_matches = search_within_tools(companies, search_term)
+    search_results = display_search_results(search_matches, search_term, len(companies))
+    print(search_results)
+
 def main():
     workflow = Workflow()
     print("🚀 Developer Tools Research Agent")
-    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring, Details, Compare, Export Compare, List")
-    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations, 'details <name|number>' for tool details, 'compare <tool1> <tool2>' for side-by-side comparison, 'export-compare <tool1> <tool2>' to save comparison as file, 'list' to show all tools")
+    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring, Details, Compare, Export Compare, List, Search")
+    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations, 'details <name|number>' for tool details, 'compare <tool1> <tool2>' for side-by-side comparison, 'export-compare <tool1> <tool2>' to save comparison as file, 'list' to show all tools, 'search <keyword>' to search within results")
     
     last_result = None
     last_companies = None
@@ -261,7 +286,7 @@ def main():
     while True:
         if last_companies:
             print(f"\n📊 Current results: {len(last_companies)} tools")
-            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', 'export-compare <tool1> <tool2>', 'list', 'save', or 'exit': ")
+            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', 'export-compare <tool1> <tool2>', 'list', 'search <keyword>', 'save', or 'exit': ")
         else:
             command = input("\n🔍 Enter a query (or 'exit' to quit): ")
         
@@ -342,6 +367,11 @@ def main():
             export_comparison(last_companies, command)
             continue
         
+        # Handle search command
+        if last_companies and command.lower().startswith("search"):
+            search_tools(last_companies, command)
+            continue
+        
         # Handle filtering and sorting
         if last_companies and (command.lower().startswith("filter") or command.lower().startswith("sort")):
             filtered_companies, filters_applied = parse_filter_command(command, last_companies)
@@ -378,7 +408,7 @@ def main():
             
             if result.get("companies"):
                 print(f"\n✅ Analyzed {len(result['companies'])} tools successfully!")
-                print("💡 Use 'list', 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', or 'export-compare <tool1> <tool2>' to refine results!")
+                print("💡 Use 'list', 'search <keyword>', 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', or 'export-compare <tool1> <tool2>' to refine results!")
                 
         except Exception as e:
             print(f"❌ An error occurred: {e}")
