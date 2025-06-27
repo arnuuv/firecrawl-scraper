@@ -41,6 +41,79 @@ def format_tool_summary(company_data: Dict[str, Any]) -> str:
 """
     return summary
 
+def search_within_tools(companies: List[CompanyInfo], search_term: str) -> List[tuple]:
+    """Search within tool data for specific keywords and return matches with context"""
+    if not companies or not search_term:
+        return []
+    
+    search_term_lower = search_term.lower()
+    matches = []
+    
+    for company in companies:
+        # Search in different fields
+        match_info = []
+        
+        # Search in name
+        if search_term_lower in company.name.lower():
+            match_info.append(f"**Name**: {company.name}")
+        
+        # Search in description
+        if company.description and search_term_lower in company.description.lower():
+            # Find the context around the match
+            desc_lower = company.description.lower()
+            start_idx = desc_lower.find(search_term_lower)
+            if start_idx != -1:
+                context_start = max(0, start_idx - 30)
+                context_end = min(len(company.description), start_idx + len(search_term) + 30)
+                context = company.description[context_start:context_end]
+                if context_start > 0:
+                    context = "..." + context
+                if context_end < len(company.description):
+                    context = context + "..."
+                match_info.append(f"**Description**: {context}")
+        
+        # Search in language support
+        matching_languages = [lang for lang in company.language_support if search_term_lower in lang.lower()]
+        if matching_languages:
+            match_info.append(f"**Languages**: {', '.join(matching_languages)}")
+        
+        # Search in tech stack
+        matching_tech = [tech for tech in company.tech_stack if search_term_lower in tech.lower()]
+        if matching_tech:
+            match_info.append(f"**Tech Stack**: {', '.join(matching_tech)}")
+        
+        # Search in integrations
+        matching_integrations = [integration for integration in company.integration_capabilities if search_term_lower in integration.lower()]
+        if matching_integrations:
+            match_info.append(f"**Integrations**: {', '.join(matching_integrations)}")
+        
+        # Search in pricing model
+        if company.pricing_model and search_term_lower in company.pricing_model.lower():
+            match_info.append(f"**Pricing**: {company.pricing_model}")
+        
+        if match_info:
+            matches.append((company, match_info))
+    
+    return matches
+
+def display_search_results(search_matches: List[tuple], search_term: str, total_tools: int) -> str:
+    """Display search results in a formatted way"""
+    if not search_matches:
+        return f"\n🔍 **Search Results for '{search_term}'**\n❌ No matches found in {total_tools} tools."
+    
+    output = [f"\n🔍 **Search Results for '{search_term}'** ({len(search_matches)}/{total_tools} tools)\n"]
+    
+    for i, (company, match_info) in enumerate(search_matches, 1):
+        output.append(f"{i}. **{company.name}**")
+        output.append(f"   💰 {company.pricing_model or 'Unknown'} | {'✅ Open Source' if company.is_open_source else '❌ Proprietary'} | {'✅ API' if company.api_available else '❌ No API'}")
+        
+        for info in match_info:
+            output.append(f"   {info}")
+        
+        output.append("")
+    
+    return "\n".join(output)
+
 def display_tools_list(companies: List[CompanyInfo]) -> str:
     """Display a numbered list of all tools with key details"""
     if not companies:
