@@ -26,6 +26,12 @@ class CompanyInfo(BaseModel):
     language_support: List[str] = []
     integration_capabilities: List[str] = []
     developer_experience_rating: Optional[str] = None  # Poor, Good, Excellent
+    # Trend analysis fields
+    trend_status: Optional[str] = None  # Rising, Stable, Declining, Hot, Emerging
+    popularity_score: Optional[int] = None  # 1-10 scale
+    community_activity: Optional[str] = None  # High, Medium, Low
+    recent_updates: Optional[str] = None  # Recent, Moderate, Stale
+    market_position: Optional[str] = None  # Leader, Challenger, Niche, New
 
 
 class ComparisonMatrix(BaseModel):
