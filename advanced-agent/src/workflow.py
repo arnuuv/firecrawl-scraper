@@ -62,28 +62,33 @@ class Workflow:
       print(e)
       return {"extracted_tools": []}
     
-    def _analyze_company_content(self,company_name:str,content:str) -> CompanyAnalysis:
-      structured_llm = self.llm.with_structured_output(CompanyAnalysis)
-      
-      messages = [
-        SystemMessage(content=self.prompts.TOOL_ANALYSIS_SYSTEM),
-        HumanMessage(content=self.prompts.tool_analysis_user(company_name, content))
-      ]
-      
-      try:
-        response = structured_llm.invoke(messages)
-        return response
-      except Exception as e:
-        print(e)
-        return CompanyAnalysis(
-          pricing_model="Unknown",
-          is_open_source=None,
-          tech_stack=[],
-          description="Failed",
-          api_available=None,
-          language_support=[],
-          integration_capabilities=[]
-        )
+  def _analyze_company_content(self,company_name:str,content:str) -> CompanyAnalysis:
+    structured_llm = self.llm.with_structured_output(CompanyAnalysis)
+    
+    messages = [
+      SystemMessage(content=self.prompts.TOOL_ANALYSIS_SYSTEM),
+      HumanMessage(content=self.prompts.tool_analysis_user(company_name, content))
+    ]
+    
+    try:
+      response = structured_llm.invoke(messages)
+      return response
+    except Exception as e:
+      print(e)
+      return CompanyAnalysis(
+        pricing_model="Unknown",
+        is_open_source=None,
+        tech_stack=[],
+        description="Failed",
+        api_available=None,
+        language_support=[],
+        integration_capabilities=[],
+        trend_status="Unknown",
+        popularity_score=5,
+        community_activity="Medium",
+        recent_updates="Unknown",
+        market_position="Unknown"
+      )
   def _research_step(self, state: ResearchState) -> Dict[str, Any]:
     extracted_tools = getattr(state,"extracted_tools",[])
     
@@ -123,6 +128,12 @@ class Workflow:
           company.api_available = analysis.api_available
           company.language_support = analysis.language_support
           company.integration_capabilities = analysis.integration_capabilities
+          # Trend analysis fields
+          company.trend_status = analysis.trend_status
+          company.popularity_score = analysis.popularity_score
+          company.community_activity = analysis.community_activity
+          company.recent_updates = analysis.recent_updates
+          company.market_position = analysis.market_position
           
         companies.append(company)
         

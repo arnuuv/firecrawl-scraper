@@ -269,6 +269,9 @@ def generate_quick_stats(companies: List[CompanyInfo]) -> str:
     
     top_languages = sorted(language_counts.items(), key=lambda x: x[1], reverse=True)[:3]
     
+    # Trend analysis stats
+    trend_stats = generate_trend_stats(companies)
+    
     stats = f"""
 ## 📈 Quick Stats
 - **Total Tools Analyzed**: {total_tools}
@@ -276,8 +279,59 @@ def generate_quick_stats(companies: List[CompanyInfo]) -> str:
 - **API Available**: {api_available_count}/{total_tools} ({api_available_count/total_tools*100:.0f}%)
 - **Pricing Models**: {', '.join([f'{k} ({v})' for k, v in pricing_counts.items()])}
 - **Top Languages**: {', '.join([f'{lang} ({count})' for lang, count in top_languages])}
+{trend_stats}
 """
     return stats
+
+def generate_trend_stats(companies: List[CompanyInfo]) -> str:
+    """Generate trend analysis statistics"""
+    if not companies:
+        return ""
+    
+    # Count trend statuses
+    trend_counts = {}
+    popularity_scores = []
+    community_activity_counts = {"High": 0, "Medium": 0, "Low": 0}
+    market_position_counts = {"Leader": 0, "Challenger": 0, "Niche": 0, "New": 0}
+    
+    for company in companies:
+        # Trend status
+        trend = company.trend_status or "Unknown"
+        trend_counts[trend] = trend_counts.get(trend, 0) + 1
+        
+        # Popularity scores
+        if company.popularity_score:
+            popularity_scores.append(company.popularity_score)
+        
+        # Community activity
+        activity = company.community_activity or "Medium"
+        if activity in community_activity_counts:
+            community_activity_counts[activity] += 1
+        
+        # Market position
+        position = company.market_position or "Unknown"
+        if position in market_position_counts:
+            market_position_counts[position] += 1
+    
+    # Calculate average popularity
+    avg_popularity = sum(popularity_scores) / len(popularity_scores) if popularity_scores else 0
+    
+    # Get top trending tools
+    trending_tools = [c for c in companies if c.trend_status in ["Rising", "Hot", "Emerging"]]
+    top_trending = sorted(trending_tools, key=lambda x: x.popularity_score or 0, reverse=True)[:3]
+    
+    trend_stats = f"""
+## 📊 **Trend Analysis**
+- **Average Popularity Score**: {avg_popularity:.1f}/10
+- **Trending Tools**: {len(trending_tools)}/{len(companies)} ({len(trending_tools)/len(companies)*100:.0f}%)
+- **Community Activity**: {', '.join([f'{k} ({v})' for k, v in community_activity_counts.items() if v > 0])}
+- **Market Positions**: {', '.join([f'{k} ({v})' for k, v in market_position_counts.items() if v > 0])}
+- **Trend Status**: {', '.join([f'{k} ({v})' for k, v in trend_counts.items() if v > 0])}"""
+    
+    if top_trending:
+        trend_stats += f"\n- **🔥 Top Trending**: {', '.join([f'{c.name} ({c.popularity_score}/10)' for c in top_trending])}"
+    
+    return trend_stats
 
 def calculate_recommendation_score(company: CompanyInfo, preferences: Dict[str, Any]) -> float:
     """Calculate a recommendation score based on user preferences"""
