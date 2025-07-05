@@ -44,6 +44,11 @@ class DeveloperToolsPrompts:
                 - api_available: true if REST API, GraphQL, SDK, or programmatic access is mentioned
                 - language_support: List of programming languages explicitly supported (e.g., Python, JavaScript, Go, etc.)
                 - integration_capabilities: List of tools/platforms it integrates with (e.g., GitHub, VS Code, Docker, AWS, etc.)
+                - trend_status: One of "Rising", "Stable", "Declining", "Hot", "Emerging" based on mentions, updates, and market buzz
+                - popularity_score: Integer 1-10 based on community mentions, GitHub stars, Stack Overflow presence, etc.
+                - community_activity: "High", "Medium", or "Low" based on community engagement indicators
+                - recent_updates: "Recent" (last 3 months), "Moderate" (3-12 months), or "Stale" (over 1 year) based on update frequency
+                - market_position: "Leader", "Challenger", "Niche", or "New" based on market presence and adoption
 
                 Focus on developer-relevant features like APIs, SDKs, language support, integrations, and development workflows."""
 
