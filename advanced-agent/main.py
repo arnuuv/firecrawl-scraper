@@ -71,6 +71,7 @@ def show_filter_help():
 - export-compare <tool1> <tool2> # Export comparison as Markdown file
 - list                         # Show numbered list of all tools
 - search <keyword>             # Search within tool data
+- trends                       # Show trend analysis and insights
 - clear                        # Clear all filters
 - help                         # Show this help
 """)
@@ -290,8 +291,8 @@ def search_tools(companies, command):
 def main():
     workflow = Workflow()
     print("🚀 Developer Tools Research Agent")
-    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring, Details, Compare, Export Compare, List, Search")
-    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations, 'details <name|number>' for tool details, 'compare <tool1> <tool2>' for side-by-side comparison, 'export-compare <tool1> <tool2>' to save comparison as file, 'list' to show all tools, 'search <keyword>' to search within results")
+    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring, Details, Compare, Export Compare, List, Search, Trend Analysis")
+    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations, 'details <name|number>' for tool details, 'compare <tool1> <tool2>' for side-by-side comparison, 'export-compare <tool1> <tool2>' to save comparison as file, 'list' to show all tools, 'search <keyword>' to search within results, 'trends' for trend analysis")
     
     last_result = None
     last_companies = None
@@ -301,7 +302,7 @@ def main():
     while True:
         if last_companies:
             print(f"\n📊 Current results: {len(last_companies)} tools")
-            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', 'export-compare <tool1> <tool2>', 'list', 'search <keyword>', 'save', or 'exit': ")
+            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', 'export-compare <tool1> <tool2>', 'list', 'search <keyword>', 'trends', 'save', or 'exit': ")
         else:
             command = input("\n🔍 Enter a query (or 'exit' to quit): ")
         
@@ -325,6 +326,25 @@ def main():
             else:
                 tools_list = display_tools_list(last_companies)
                 print(tools_list)
+            continue
+            
+        if command.lower() == "trends":
+            if not last_companies:
+                print("⚠️ No results to analyze trends for. Please run a query first.")
+            else:
+                from src.utils import generate_trend_stats
+                trend_analysis = generate_trend_stats(last_companies)
+                print(trend_analysis)
+                
+                # Show trending tools in detail
+                trending_tools = [c for c in last_companies if c.trend_status in ["Rising", "Hot", "Emerging"]]
+                if trending_tools:
+                    print(f"\n🔥 **Trending Tools Details** ({len(trending_tools)} tools)")
+                    for i, tool in enumerate(trending_tools, 1):
+                        print(f"{i}. **{tool.name}** - {tool.trend_status}")
+                        print(f"   📊 Popularity: {tool.popularity_score}/10 | Community: {tool.community_activity} | Market: {tool.market_position}")
+                        print(f"   📝 {tool.description[:100]}{'...' if len(tool.description) > 100 else ''}")
+                        print("")
             continue
             
         if command.lower() == "score":
