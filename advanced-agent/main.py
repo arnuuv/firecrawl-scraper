@@ -24,33 +24,6 @@ import os
 
 load_dotenv()
 
-def save_results_to_file(result: dict, query: str):
-    """Save research results to a JSON file"""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"research_results_{timestamp}.json"
-    
-    # Convert Pydantic models to dict for JSON serialization
-    serializable_result = {}
-    for key, value in result.items():
-        if hasattr(value, 'model_dump'):
-            serializable_result[key] = value.model_dump()
-        elif isinstance(value, list) and value and hasattr(value[0], 'model_dump'):
-            serializable_result[key] = [item.model_dump() for item in value]
-        else:
-            serializable_result[key] = value
-    
-    # Add metadata
-    serializable_result['metadata'] = {
-        'query': query,
-        'timestamp': timestamp,
-        'generated_at': datetime.now().isoformat()
-    }
-    
-    with open(filename, 'w') as f:
-        json.dump(serializable_result, f, indent=2)
-    
-    return filename
-
 def show_filter_help():
     """Display help for filtering and sorting commands"""
     print("""
@@ -119,20 +92,7 @@ def parse_filter_command(command: str, companies: list) -> tuple:
     
     return filtered, filters_applied
 
-def save_results_to_file(result: dict, query: str):
-    """Save research results to a JSON file"""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"research_results_{timestamp}.json"
-    
-    # Convert Pydantic models to dict for JSON serialization
-    serializable_result = {}
-    for key, value in result.items():
-        if hasattr(value, 'model_dump'):
-            serializable_result[key] = value.model_dump()
-        elif isinstance(value, list) and value and hasattr(value[0], 'model_dump'):
-            serializable_result[key] = [item.model_dump() for item in value]
-        else:
-            serializable_result[key] = value
+
     
 def show_tool_details(companies, arg):
     """Show details for a tool by name or number."""
