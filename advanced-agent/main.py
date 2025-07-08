@@ -16,7 +16,11 @@ from src.utils import (
     save_comparison_as_markdown,
     display_tools_list,
     search_within_tools,
-    display_search_results
+    display_search_results,
+    get_research_templates,
+    display_research_templates,
+    apply_research_template,
+    search_templates_by_name
 )
 import json
 from datetime import datetime
@@ -45,6 +49,8 @@ def show_filter_help():
 - list                         # Show numbered list of all tools
 - search <keyword>             # Search within tool data
 - trends                       # Show trend analysis and insights
+- templates                    # Show research templates
+- template <number|name>       # Apply a research template
 - clear                        # Clear all filters
 - help                         # Show this help
 """)
@@ -248,11 +254,72 @@ def search_tools(companies, command):
     search_results = display_search_results(search_matches, search_term, len(companies))
     print(search_results)
 
+def handle_template_command(command: str) -> tuple:
+    """Handle template commands and return query and template info"""
+    parts = command.lower().split()
+    if len(parts) < 2:
+        return None, None
+    
+    template_arg = parts[1]
+    templates = get_research_templates()
+    
+    # Try to find template by number
+    if template_arg.isdigit():
+        idx = int(template_arg) - 1
+        if 0 <= idx < len(templates):
+            template = templates[idx]
+        else:
+            print(f"❌ No template at position {template_arg}")
+            return None, None
+    else:
+        # Try to find template by name
+        matches = search_templates_by_name(templates, template_arg)
+        if len(matches) == 1:
+            template = matches[0]
+        elif len(matches) > 1:
+            print(f"🔍 Multiple templates found for '{template_arg}':")
+            for i, match in enumerate(matches, 1):
+                print(f"  {i}. {match.name} - {match.description}")
+            return None, None
+        else:
+            print(f"❌ No template found matching '{template_arg}'")
+            return None, None
+    
+    # Get custom parameters from user
+    custom_params = {}
+    print(f"\n📋 Applying template: {template.name}")
+    print(f"📝 Description: {template.description}")
+    print(f"🎯 Use Case: {template.use_case}")
+    
+    # Extract placeholders from query template
+    import re
+    placeholders = re.findall(r'\{(\w+)\}', template.query_template)
+    
+    if placeholders:
+        print(f"\n🔧 Customize template parameters:")
+        for placeholder in placeholders:
+            value = input(f"  Enter {placeholder.replace('_', ' ')}: ").strip()
+            if value:
+                custom_params[placeholder] = value
+    
+    # Apply template
+    template_result = apply_research_template(template, custom_params)
+    query = template_result["query"]
+    template_info = template_result["template_info"]
+    
+    print(f"\n🚀 Generated query: {query}")
+    if template_result["filters"]:
+        print(f"🔍 Applied filters: {template_result['filters']}")
+    if template_result["sort_by"]:
+        print(f"📈 Sort by: {template_result['sort_by']}")
+    
+    return query, template_info
+
 def main():
     workflow = Workflow()
     print("🚀 Developer Tools Research Agent")
-    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring, Details, Compare, Export Compare, List, Search, Trend Analysis")
-    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations, 'details <name|number>' for tool details, 'compare <tool1> <tool2>' for side-by-side comparison, 'export-compare <tool1> <tool2>' to save comparison as file, 'list' to show all tools, 'search <keyword>' to search within results, 'trends' for trend analysis")
+    print("Features: Research, Analysis, Report, Comparison Matrix, MD/JSON Export, Filtering, Scoring, Details, Compare, Export Compare, List, Search, Trend Analysis, Research Templates")
+    print("Commands: 'exit' to quit, 'save' to save last result, 'filter' to filter results, 'score' for recommendations, 'details <name|number>' for tool details, 'compare <tool1> <tool2>' for side-by-side comparison, 'export-compare <tool1> <tool2>' to save comparison as file, 'list' to show all tools, 'search <keyword>' to search within results, 'trends' for trend analysis, 'templates' to show research templates, 'template <number|name>' to apply a template")
     
     last_result = None
     last_companies = None
@@ -262,7 +329,7 @@ def main():
     while True:
         if last_companies:
             print(f"\n📊 Current results: {len(last_companies)} tools")
-            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', 'export-compare <tool1> <tool2>', 'list', 'search <keyword>', 'trends', 'save', or 'exit': ")
+            command = input("🔍 Enter query, 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', 'export-compare <tool1> <tool2>', 'list', 'search <keyword>', 'trends', 'templates', 'template <number|name>', 'save', or 'exit': ")
         else:
             command = input("\n🔍 Enter a query (or 'exit' to quit): ")
         
@@ -278,6 +345,59 @@ def main():
             if original_companies:
                 last_companies = original_companies.copy()
                 print("🧹 Filters cleared!")
+            continue
+            
+        if command.lower() == "templates":
+            templates = get_research_templates()
+            templates_display = display_research_templates(templates)
+            print(templates_display)
+            continue
+            
+        if command.lower().startswith("template"):
+            query, template_info = handle_template_command(command)
+            if query:
+                try:
+                    print("🔬 Researching with template... This may take a moment.")
+                    result = workflow.run(query, template_info)
+                    last_result = result
+                    last_companies = result.get("companies", [])
+                    original_companies = last_companies.copy() if last_companies else None
+                    current_preferences = None
+                    
+                    print("\n" + "="*50)
+                    print("📊 TEMPLATE RESEARCH RESULTS")
+                    print("="*50)
+                    
+                    if template_info:
+                        print(f"📋 Template: {template_info['name']}")
+                        print(f"🎯 Use Case: {template_info['use_case']}")
+                        print(f"👥 Target: {template_info['target_audience']}")
+                        print(f"📊 Complexity: {template_info['complexity'].title()}")
+                        print(f"⏱️ Estimated Time: {template_info['estimated_time']}")
+                        print("")
+                    
+                    if result.get("companies"):
+                        stats = generate_quick_stats(result["companies"])
+                        print(stats)
+                    
+                    if result.get("analysis"):
+                        print("\n💡 ANALYSIS:")
+                        print(result["analysis"])
+                    
+                    if result.get("comparison_matrix"):
+                        comparison_display = display_comparison_matrix(result["comparison_matrix"])
+                        print(comparison_display)
+                    
+                    if result.get("companies"):
+                        print(f"\n✅ Analyzed {len(result['companies'])} tools successfully!")
+                        print("💡 Use 'list', 'search <keyword>', 'filter <criteria>', 'sort <field>', 'score', 'details <name|number>', 'compare <tool1> <tool2>', or 'export-compare <tool1> <tool2>' to refine results!")
+                        
+                except Exception as e:
+                    print(f"❌ An error occurred: {e}")
+                    last_result = None
+                    last_companies = None
+                    original_companies = None
+                    current_preferences = None
             continue
             
         if command.lower() == "list":

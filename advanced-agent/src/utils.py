@@ -602,3 +602,171 @@ def save_as_json(result: dict, query: str) -> str:
         json.dump(serializable_result, f, indent=2)
     
     return filename 
+
+def get_research_templates() -> List[ResearchTemplate]:
+    """Get predefined research templates"""
+    templates = [
+        ResearchTemplate(
+            name="Database Comparison",
+            description="Compare database solutions for a new project",
+            query_template="Compare {database_type} databases for {use_case}",
+            filters={"api": True},
+            sort_by="popularity",
+            use_case="Database selection for new project",
+            target_audience="Backend developers, DevOps engineers",
+            complexity="intermediate",
+            estimated_time="10-15 minutes",
+            tags=["database", "backend", "comparison"]
+        ),
+        ResearchTemplate(
+            name="CI/CD Tools",
+            description="Find the best CI/CD pipeline tools",
+            query_template="CI/CD tools for {language} projects",
+            filters={"opensource": True},
+            sort_by="community_activity",
+            use_case="Setting up automated deployment pipeline",
+            target_audience="DevOps engineers, Full-stack developers",
+            complexity="intermediate",
+            estimated_time="8-12 minutes",
+            tags=["ci-cd", "devops", "automation"]
+        ),
+        ResearchTemplate(
+            name="Monitoring Solutions",
+            description="Research application monitoring and observability tools",
+            query_template="Application monitoring tools for {tech_stack}",
+            filters={"api": True},
+            sort_by="market_position",
+            use_case="Production monitoring setup",
+            target_audience="DevOps engineers, SREs",
+            complexity="advanced",
+            estimated_time="12-18 minutes",
+            tags=["monitoring", "observability", "production"]
+        ),
+        ResearchTemplate(
+            name="Frontend Frameworks",
+            description="Compare modern frontend frameworks",
+            query_template="Frontend frameworks for {project_type}",
+            filters={"opensource": True},
+            sort_by="popularity",
+            use_case="Frontend technology selection",
+            target_audience="Frontend developers, Full-stack developers",
+            complexity="beginner",
+            estimated_time="6-10 minutes",
+            tags=["frontend", "frameworks", "ui"]
+        ),
+        ResearchTemplate(
+            name="Cloud Providers",
+            description="Compare cloud service providers",
+            query_template="Cloud providers for {deployment_type}",
+            filters={"api": True},
+            sort_by="market_position",
+            use_case="Cloud infrastructure selection",
+            target_audience="DevOps engineers, Cloud architects",
+            complexity="intermediate",
+            estimated_time="15-20 minutes",
+            tags=["cloud", "infrastructure", "deployment"]
+        ),
+        ResearchTemplate(
+            name="API Development",
+            description="Find tools for API development and management",
+            query_template="API development tools for {api_type}",
+            filters={"api": True},
+            sort_by="popularity",
+            use_case="API development and documentation",
+            target_audience="Backend developers, API developers",
+            complexity="intermediate",
+            estimated_time="8-12 minutes",
+            tags=["api", "backend", "documentation"]
+        ),
+        ResearchTemplate(
+            name="Testing Frameworks",
+            description="Research testing frameworks and tools",
+            query_template="Testing frameworks for {language}",
+            filters={"opensource": True},
+            sort_by="community_activity",
+            use_case="Test automation setup",
+            target_audience="QA engineers, Developers",
+            complexity="beginner",
+            estimated_time="6-10 minutes",
+            tags=["testing", "automation", "qa"]
+        ),
+        ResearchTemplate(
+            name="Security Tools",
+            description="Find security and compliance tools",
+            query_template="Security tools for {security_type}",
+            filters={"api": True},
+            sort_by="market_position",
+            use_case="Security implementation and compliance",
+            target_audience="Security engineers, DevOps engineers",
+            complexity="advanced",
+            estimated_time="12-18 minutes",
+            tags=["security", "compliance", "audit"]
+        )
+    ]
+    return templates
+
+def display_research_templates(templates: List[ResearchTemplate]) -> str:
+    """Display available research templates"""
+    output = "\n📋 **RESEARCH TEMPLATES**\n"
+    output += "=" * 50 + "\n\n"
+    
+    for i, template in enumerate(templates, 1):
+        output += f"{i}. **{template.name}**\n"
+        output += f"   📝 {template.description}\n"
+        output += f"   🎯 Use Case: {template.use_case}\n"
+        output += f"   👥 Target: {template.target_audience}\n"
+        output += f"   📊 Complexity: {template.complexity.title()}\n"
+        output += f"   ⏱️ Time: {template.estimated_time}\n"
+        output += f"   🏷️ Tags: {', '.join(template.tags)}\n"
+        if template.filters:
+            output += f"   🔍 Filters: {', '.join([f'{k}={v}' for k, v in template.filters.items()])}\n"
+        if template.sort_by:
+            output += f"   📈 Sort by: {template.sort_by}\n"
+        output += "\n"
+    
+    output += "💡 **Usage:** Use 'template <number>' to apply a template, or 'template <name>' to search by name.\n"
+    output += "💡 **Customization:** Templates can be customized with your specific requirements.\n"
+    
+    return output
+
+def apply_research_template(template: ResearchTemplate, custom_params: dict = None) -> dict:
+    """Apply a research template with optional custom parameters"""
+    # Build the query from template
+    query = template.query_template
+    
+    # Replace placeholders with custom parameters or defaults
+    if custom_params:
+        for key, value in custom_params.items():
+            placeholder = f"{{{key}}}"
+            if placeholder in query:
+                query = query.replace(placeholder, str(value))
+    
+    # Apply default filters and sorting
+    result = {
+        "query": query,
+        "filters": template.filters or {},
+        "sort_by": template.sort_by,
+        "template_info": {
+            "name": template.name,
+            "use_case": template.use_case,
+            "target_audience": template.target_audience,
+            "complexity": template.complexity,
+            "estimated_time": template.estimated_time
+        }
+    }
+    
+    return result
+
+def search_templates_by_name(templates: List[ResearchTemplate], search_term: str) -> List[ResearchTemplate]:
+    """Search templates by name or tags"""
+    search_term = search_term.lower()
+    matches = []
+    
+    for template in templates:
+        if (search_term in template.name.lower() or 
+            search_term in template.description.lower() or
+            any(search_term in tag.lower() for tag in template.tags) or
+            search_term in template.use_case.lower()):
+            matches.append(template)
+    
+    return matches 

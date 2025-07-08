@@ -5,6 +5,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from .firecrawl import FirecrawlService
 from .prompts import DeveloperToolsPrompts
 from .models import ResearchState, CompanyInfo, CompanyAnalysis, ComparisonMatrix
+from datetime import datetime
 
 class Workflow:
   def __init__(self):
@@ -199,6 +200,44 @@ class Workflow:
       fallback_matrix = ComparisonMatrix(tools=tools, categories=categories, matrix=matrix)
       return {"comparison_matrix": fallback_matrix}
   
-  def run(self, query:str) -> Dict[str, Any]:
-    state = ResearchState(query=query)
-    return self.workflow.invoke(state)
+  def run(self, query: str, template_info: dict = None) -> dict:
+        """Run the complete workflow"""
+        try:
+            # Add template info to metadata if provided
+            metadata = {
+                "query": query,
+                "timestamp": datetime.now().isoformat(),
+                "template_info": template_info
+            }
+            
+            # Research phase
+            companies = self.research_phase(query)
+            
+            if not companies:
+                return {
+                    "error": "No companies found for the given query",
+                    "metadata": metadata
+                }
+            
+            # Analysis phase
+            analysis = self.analysis_phase(companies, query)
+            
+            # Comparison matrix
+            comparison_matrix = self.comparison_phase(companies)
+            
+            # Generate report
+            report = self.report_phase(companies, analysis, query)
+            
+            return {
+                "companies": companies,
+                "analysis": analysis,
+                "comparison_matrix": comparison_matrix,
+                "report": report,
+                "metadata": metadata
+            }
+            
+        except Exception as e:
+            return {
+                "error": str(e),
+                "metadata": metadata if 'metadata' in locals() else {"query": query}
+            }

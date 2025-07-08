@@ -55,3 +55,17 @@ class ResearchState(BaseModel):
     analysis: Optional[str] = None
     report: Optional[str] = None
     comparison_matrix: Optional[ComparisonMatrix] = None
+
+
+class ResearchTemplate(BaseModel):
+    """Model for research templates"""
+    name: str
+    description: str
+    query_template: str
+    filters: Optional[dict] = None
+    sort_by: Optional[str] = None
+    use_case: str
+    target_audience: str
+    complexity: str  # "beginner", "intermediate", "advanced"
+    estimated_time: str
+    tags: List[str] = []
